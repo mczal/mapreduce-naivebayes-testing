@@ -1,0 +1,22 @@
+Play,No,5.0|CLASS
+Play,Yes,9.0|CLASS
+Rand,Play,No ;6.08|4.099463379516885|NUMERIC
+Rand,Play,Yes ;5.911111111111111|2.8005731335823403|NUMERIC
+Humidity,High,Play,No,4.0|DISCRETE
+Humidity,High,Play,Yes,3.0|DISCRETE
+Humidity,Normal,Play,No,1.0|DISCRETE
+Humidity,Normal,Play,Yes,6.0|DISCRETE
+Outlook,Rainy,Play,No,3.0|DISCRETE
+Outlook,Rainy,Play,Yes,2.0|DISCRETE
+Outlook,Sunny,Play,No,2.0|DISCRETE
+Outlook,Sunny,Play,Yes,3.0|DISCRETE
+Temperature,Cool,Play,No,1.0|DISCRETE
+Temperature,Cool,Play,Yes,3.0|DISCRETE
+Temperature,Hot,Play,No,2.0|DISCRETE
+Temperature,Hot,Play,Yes,2.0|DISCRETE
+Temperature,Mild,Play,No,2.0|DISCRETE
+Temperature,Mild,Play,Yes,4.0|DISCRETE
+Windy,FALSE,Play,No,2.0|DISCRETE
+Windy,FALSE,Play,Yes,6.0|DISCRETE
+Windy,TRUE,Play,No,3.0|DISCRETE
+Windy,TRUE,Play,Yes,3.0|DISCRETE
