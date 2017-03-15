@@ -16,25 +16,57 @@ import reducer.TestingReducer;
  */
 public class App {
 
-  private static final String HDFS_PATH_OUTPUT_MODEL = "/user/root/bayes/output";
   private static final String HDFS_AUTHORITY = "hdfs://localhost:9000";
-  private static final String HDFS_PATH_INFO_INPUT = "/user/root/bayes/info/meta.info";
 
   /**
-   * @param args : [0] input path => data testing [1] output path => result of training
+   * @param args : [0] model path
    */
   public static void main(String[] args) throws Exception {
 
-    Configuration conf = new Configuration();
-
-    FileSystem fs = FileSystem.get(conf);
-    /* Check if output path (args[1])exist or not */
-    if (fs.exists(new Path(args[1]))) {
-      /* If exist delete the output path */
-      fs.delete(new Path(args[1]), true);
+    if (args.length != 1) {
+      String argsExcp =
+          "Error catched by custom Impl. Please read the following line below.\n"
+              + "-----------------------------\n"
+              + "-> Arguments must only consist of 1 path.\n"
+              + "-> It located the model of input you want to execute in HDFS.\n"
+              + "-> Ex: \n"
+              + "-> If args[0]=/user/root/bayes/weather -> \n"
+              + "-> Then, that path must had : \n"
+              + "-> (1) info path + file => /user/root/bayes/weather/info/meta.info\n"
+              + "-> (2) model output path + file => /user/root/bayes/weather/output/...\n"
+              + "-> (3) testing path for input split file => /user/root/bayes/weather/testing/input/...\n"
+              + "-> The output file will be located in /user/root/bayes/weather/output/...\n"
+              + "-----------------------------";
+      throw new IllegalArgumentException(argsExcp);
     }
 
-    Path path = new Path(HDFS_AUTHORITY + HDFS_PATH_INFO_INPUT);
+    Configuration conf = new Configuration();
+
+    String infoPathFile = args[0];
+    String inputPath = args[0];
+    String outputPath = args[0];
+    String outputModelPath = args[0]; // For model classifier that has been generated with different module program
+    if (args[0].charAt(args[0].length() - 1) == '/') {
+      inputPath += "testing/input";
+      outputPath += "testing/output";
+      infoPathFile += "info/meta.info";
+      outputModelPath += "output"; // For model classifier that has been generated with different module program
+    } else {
+      inputPath += "/testing/input";
+      outputPath += "/testing/output";
+      infoPathFile += "/info/meta.info";
+      outputModelPath += "/output"; // For model classifier that has been generated with different module program
+    }
+
+    conf.set("outputModelPath", outputModelPath);
+
+    FileSystem fs = FileSystem.get(conf);
+    /* Check if output path (outputPath)exist or not */
+    if (fs.exists(new Path(outputPath))) {
+      /* If exist delete the output path */
+      fs.delete(new Path(outputPath), true);
+    }
+    Path path = new Path(HDFS_AUTHORITY + infoPathFile);
     BufferedReader br = new BufferedReader(new InputStreamReader(fs.open(path)));
     String currClass = br.readLine();
     String currAttr = br.readLine();
@@ -52,8 +84,8 @@ public class App {
     job.setOutputKeyClass(Text.class);
     job.setOutputValueClass(Text.class);
 
-    FileInputFormat.addInputPath(job, new Path(args[0]));
-    FileOutputFormat.setOutputPath(job, new Path(args[1]));
+    FileInputFormat.addInputPath(job, new Path(inputPath));
+    FileOutputFormat.setOutputPath(job, new Path(outputPath));
     System.exit(job.waitForCompletion(true) ? 0 : 1);
 
   }

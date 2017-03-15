@@ -24,7 +24,6 @@ import reducer.utils.ConfusionMatrix;
  */
 public class TestingReducer extends Reducer<Text, Text, Text, Text> {
 
-  private static final String HDFS_PATH_OUTPUT_MODEL = "/user/root/bayes/output";
   private static final String HDFS_AUTHORITY = "hdfs://localhost:9000";
   private ClassContainerRed classContainerRed = new ClassContainerRed();
   private String[] classSplitConf;
@@ -87,8 +86,10 @@ public class TestingReducer extends Reducer<Text, Text, Text, Text> {
   protected void setup(Context context) throws IOException, InterruptedException {
     Configuration conf = context.getConfiguration();
 
+    String outputModelPath = conf.get("outputModelPath");
+
     FileSystem fs = FileSystem.get(conf);
-    Path path = new Path(HDFS_AUTHORITY + HDFS_PATH_OUTPUT_MODEL);
+    Path path = new Path(HDFS_AUTHORITY + outputModelPath);
     FileStatus[] fileStatuses = fs.listStatus(path);
     for (int i = 0; i < fileStatuses.length; i++) {
       BufferedReader br = new BufferedReader(

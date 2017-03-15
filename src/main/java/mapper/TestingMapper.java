@@ -17,8 +17,6 @@ import mapper.utils.classp.ClassPriorDetail;
 import mapper.utils.predictor.Predictor;
 import mapper.utils.predictor.PredictorContainer;
 import mapper.utils.predictor.PredictorDetail;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -34,7 +32,6 @@ import org.slf4j.LoggerFactory;
  */
 public class TestingMapper extends Mapper<Object, Text, Text, Text> {
 
-  private static final String HDFS_PATH_OUTPUT_MODEL = "/user/root/bayes/output";
   private static final String HDFS_AUTHORITY = "hdfs://localhost:9000";
 
   private final Logger logger = LoggerFactory.getLogger(this.getClass());
@@ -55,7 +52,7 @@ public class TestingMapper extends Mapper<Object, Text, Text, Text> {
      * allResults format :
      *      [ClassName|ClassVal|Result|InputClassValue]
      * */
-    List<String> allResults = new ArrayList<>();
+    List<String> allResults = new ArrayList<String>();
     for (int i = 0; i < classSplitConf.length; i++) {
       int classIdx = Integer.parseInt(classSplitConf[i].trim().split(",")[1].trim());
       String className = classSplitConf[i].trim().split(",")[0].trim().toLowerCase();
@@ -65,7 +62,9 @@ public class TestingMapper extends Mapper<Object, Text, Text, Text> {
       ClassPrior sumClassPrior = classContainer.getClassPriorMap().get(className);
       if (sumClassPrior == null) {
         throw new IllegalArgumentException(
-            "SUM_CLASS_PRIOR IS NULL on line 48 : TestingMapper.class");
+            "SUM_CLASS_PRIOR IS NULL on line 48 : TestingMapper.class \n"
+                + "for: " + className + "\n"
+                + "from: " + sumClassPrior);
       }
 
       /**
@@ -90,18 +89,18 @@ public class TestingMapper extends Mapper<Object, Text, Text, Text> {
           if (attrType.equals(TypeInfo.DISCRETE.name().toLowerCase())) {
             Predictor pred = predictorContainer.getPredictorMap().get(attrName);
             if (pred == null) {
-              throw new IllegalArgumentException("PRED IS NULL ON line 52 : TestingMapper.class");
+              throw new IllegalArgumentException("PRED IS NULL ON line 93 : TestingMapper.class");
             }
             PredictorDetail predictorDetail = pred.getAttrDetailMap().get(currInAttrValue);
             if (predictorDetail == null) {
               throw new IllegalArgumentException(
-                  "PRED_DETAIL IS NULL ON line 57 : TestingMapper.class");
+                  "PRED_DETAIL IS NULL ON line 97 : TestingMapper.class");
             }
             ClassPrior classPrior = predictorDetail.getClassPriorMap().get(className);
 //            ClassPrior classPrior = classContainer.getClassPriorMap().get(className);
             if (classPrior == null) {
               throw new IllegalArgumentException(
-                  "CLASS_PRIOR IS NULL ON line 64 : TestingMapper.class" + " => " + predictorDetail
+                  "CLASS_PRIOR IS NULL ON line 104 : TestingMapper.class" + " => " + predictorDetail
                       .toString());
             }
 
@@ -129,7 +128,7 @@ public class TestingMapper extends Mapper<Object, Text, Text, Text> {
             ClassPrior divClassPrior = pred.getClassPriorMap().get(className);
             if (divClassPrior == null) {
               throw new IllegalArgumentException(
-                  "DIV_CLASS_PRIOR IS NULL ON line 117 : TestingMapper.class :: \n" +
+                  "DIV_CLASS_PRIOR IS NULL ON line 132 : TestingMapper.class :: \n" +
                       "pred.getClassPriorMap() => " + pred.getClassPriorMap().toString() + "\n" +
                       "className => " + className);
             }
@@ -137,7 +136,7 @@ public class TestingMapper extends Mapper<Object, Text, Text, Text> {
                 .get(forSumClassPriorDetail.getValue());
             if (divClassPriorDetail == null) {
               throw new IllegalArgumentException(
-                  "DIV_CLASS_PRIOR_DETAIL IS NULL ON line 126 : TestingMapper.class :: \n" +
+                  "DIV_CLASS_PRIOR_DETAIL IS NULL ON line 140 : TestingMapper.class :: \n" +
                       "divClassPrior.getAttrDetailMap() => " + divClassPrior.getAttrDetailMap()
                       .toString() + "\n" +
                       "currInAttrValue => " + forSumClassPriorDetail.getValue());
@@ -173,14 +172,14 @@ public class TestingMapper extends Mapper<Object, Text, Text, Text> {
             Predictor pred = predictorContainer.getPredictorMap().get(attrName);
             if (pred == null) {
               throw new IllegalArgumentException(
-                  "PRED IS NULL ON line 175 : TestingMapper.class for:\nattrName='" + attrName
+                  "PRED IS NULL ON line 176 : TestingMapper.class for:\nattrName='" + attrName
                       + "'\n"
                       + "from: " + predictorContainer.getPredictorMap().toString());
             }
             ClassPrior classPrior = pred.getClassPriorMap().get(className);
             if (classPrior == null) {
               throw new IllegalArgumentException(
-                  "CLASS_PRIOR IS NULL ON line 180 : TestingMapper.class for:\nclassName='"
+                  "CLASS_PRIOR IS NULL ON line 183 : TestingMapper.class for:\nclassName='"
                       + className + "'\n"
                       + "from: " + pred.getClassPriorMap().toString());
             }
@@ -188,7 +187,7 @@ public class TestingMapper extends Mapper<Object, Text, Text, Text> {
                 .get(forSumClassPriorDetail.getValue());
             if (detail == null) {
               throw new IllegalArgumentException(
-                  "CLASS_DETAIL IS NULL ON line 186 : TestingMapper.class for:\nclassVal='"
+                  "CLASS_DETAIL IS NULL ON line 191 : TestingMapper.class for:\nclassVal='"
                       + forSumClassPriorDetail.getValue() + "'\n"
                       + "from: " + classPrior.getAttrDetailMap().toString());
             }
@@ -211,17 +210,23 @@ public class TestingMapper extends Mapper<Object, Text, Text, Text> {
                     .name().toLowerCase() + " or " + TypeInfo.NUMERICAL.name().toLowerCase());
           }
         }
-//        currPredRes *= (classInfoDetail.getCount() * 1.0) / (accFinal * 1.0);
+
+        /**
+         *  times with P(C=c) possibilities of current class prior
+         * currPredRes *= (classInfoDetail.getCount() * 1.0) / (accFinal * 1.0);
+         */
         ClassPrior classPrior = classContainer.getClassPriorMap().get(className);
         if (classPrior == null) {
-          throw new IllegalArgumentException("ClassPrior is null className=" + className + "\n"
-              + "from: " + classContainer.getClassPriorMap().toString());
+          throw new IllegalArgumentException(
+              "ClassPrior is null on line 221 className=" + className + "\n"
+                  + "from: " + classContainer.getClassPriorMap().toString());
         }
         ClassPriorDetail detail = classPrior.getAttrDetailMap()
             .get(forSumClassPriorDetail.getValue());
         if (detail == null) {
           throw new IllegalArgumentException(
-              "ClassPriorDetail is null classVal=" + forSumClassPriorDetail.getValue() + "\n"
+              "ClassPriorDetail is null on line 229. classVal=" + forSumClassPriorDetail.getValue()
+                  + "\n"
                   + "from: " + classPrior.getAttrDetailMap().toString());
         }
         double currClassCount = detail.getCount();
@@ -233,23 +238,9 @@ public class TestingMapper extends Mapper<Object, Text, Text, Text> {
         /**
          * [ClassName|ClassVal|Result|InputClassValue]
          * */
-//        context.write(
-//            new Text("currClassAllPredictorResult before final " + currClassAllPredictorResult),
-//            new Text());
         currClassAllPredictorResult *= (currClassCount / allCurrClassCount);
-//        _________________ __________________ __________________
-//        context.write(
-//            new Text("currClassAllPredictorResult after final " + currClassAllPredictorResult),
-//            new Text());
         allClassResult.add(className + "|" + forSumClassPriorDetail.getValue() + "|"
             + currClassAllPredictorResult + "|" + currInClassValue);
-//        context.write(new Text("allClassResult just added " + allClassResult.toString()),
-//            new Text());
-//        context.write(
-//            new Text("\n\n----[START] THIS WILL ADD TO CLASS RES-----\nallClassResult => \n" +
-//                className + "|" + forSumClassPriorDetail.getValue() + "|"
-//                + currClassAllPredictorResult + "|" + currInClassValue
-//                + "\n\n----THIS WILL ADD TO CLASS RES [END]-----\n\n"), one);
       }
 
       /**
@@ -263,9 +254,7 @@ public class TestingMapper extends Mapper<Object, Text, Text, Text> {
       /**
        * [ClassName|ClassVal|Result|InputClassValue]
        * */
-//      context.write(new Text("allClassRes: " + allClassResult.toString()), new Text(""));
       for (String s : allClassResult) {
-//        context.write(new Text("maxValue => " + maxValue + "\nS => " + s + "\n"), one);
         double currentVal = Double.parseDouble(s.split("\\|")[2]);
         divisorNorm += currentVal;
         if (checker < currentVal) {
@@ -274,9 +263,6 @@ public class TestingMapper extends Mapper<Object, Text, Text, Text> {
         }
       }
       double resNorm = (checker / divisorNorm) * 100;
-//      context
-//          .write(new Text("\n\n----CHECK MAXVAL----\n" + maxValue + "\n----CHECK MAXVAL----\n\n"),
-//              one);
       String[] splitter = maxClass.split("\\|");
       DecimalFormat df = new DecimalFormat("#.00");
       df.setRoundingMode(RoundingMode.HALF_UP);
@@ -305,8 +291,10 @@ public class TestingMapper extends Mapper<Object, Text, Text, Text> {
     classSplitConf = context.getConfiguration().get("classes").split(";");
     attrSplitConf = context.getConfiguration().get("attributes").split(";");
 
+    String outputModelPath = conf.get("outputModelPath");
+
     FileSystem fs = FileSystem.get(conf);
-    Path path = new Path(HDFS_AUTHORITY + HDFS_PATH_OUTPUT_MODEL);
+    Path path = new Path(HDFS_AUTHORITY + outputModelPath);
     FileStatus[] fileStatuses = fs.listStatus(path);
     for (int i = 0; i < fileStatuses.length; i++) {
       BufferedReader br = new BufferedReader(
@@ -409,7 +397,8 @@ public class TestingMapper extends Mapper<Object, Text, Text, Text> {
          * ERROR
          * */
         else {
-          throw new IllegalArgumentException("NO TYPE : " + currType + " !!! VIOLATION ON MODELS");
+          throw new IllegalArgumentException(
+              "ON LINE : 400 .\nNO TYPE : " + currType + " !!! VIOLATION ON MODELS");
         }
       }
     }
