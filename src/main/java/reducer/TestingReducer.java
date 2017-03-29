@@ -52,16 +52,16 @@ public class TestingReducer extends Reducer<Text, Text, Text, Text> {
         int predIndex = confusionMatrix.getInfo().get(predicted);
         int actIndex = confusionMatrix.getInfo().get(actual);
         confusionMatrix.getMatrix()[actIndex][predIndex]++;
-        outKey += actual + "|" + predicted + "|" + percentage + System.lineSeparator();
+//        outKey += actual + "|" + predicted + "|" + percentage + System.lineSeparator();
       } catch (Exception e) {
         e.printStackTrace();
         System.out.println(e.toString());
       }
     }
     outKey = separateBetConfusion(outKey);
-    outVal += System.lineSeparator();
-    outVal += confusionMatrix.stringPrintedMatrix() + System.lineSeparator();
-    outVal = separateBetConfusion(outVal);
+    outKey += System.lineSeparator();
+    outKey += confusionMatrix.stringPrintedMatrix() + System.lineSeparator();
+    outKey += separateBetConfusion(outVal);
 
     /**
      * Calculate ErrorRates
