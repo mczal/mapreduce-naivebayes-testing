@@ -11,7 +11,7 @@ import mapper.utils.classp.ClassPriorDetail;
  */
 public class PredictorDetail extends AttributeDetail {
 
-  private Map<String, ClassPrior> classPriorMap = new HashMap<>();
+  private Map<String, ClassPrior> classPriorMap = new HashMap<String, ClassPrior>();
 
   public Map<String, ClassPrior> getClassPriorMap() {
     return classPriorMap;

@@ -16,7 +16,7 @@ public class AttributeMetaInfo<T extends AttributeDetail> {
 
   private double mean;
 
-  private Map<String, T> attrDetailMap = new HashMap<>();
+  private Map<String, T> attrDetailMap = new HashMap<String, T>();
 
   public AttributeMetaInfo(String name, TypeModel typeModel) {
     this.name = name;

@@ -11,7 +11,7 @@ import mapper.utils.classp.ClassPrior;
  */
 public class Predictor extends AttributeMetaInfo<PredictorDetail> {
 
-  private Map<String, ClassPrior> classPriorMap = new HashMap<>();
+  private Map<String, ClassPrior> classPriorMap = new HashMap<String, ClassPrior>();
 
   public Predictor(String name, TypeModel typeModel) {
     super(name, typeModel);

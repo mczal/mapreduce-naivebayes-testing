@@ -8,7 +8,7 @@ import java.util.Map;
  */
 public class ClassContainer {
 
-  private Map<String, ClassPrior> classPriorMap = new HashMap<>();
+  private Map<String, ClassPrior> classPriorMap = new HashMap<String, ClassPrior>();
 
   public Map<String, ClassPrior> getClassPriorMap() {
     return classPriorMap;

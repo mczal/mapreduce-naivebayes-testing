@@ -8,7 +8,7 @@ import java.util.Map;
  */
 public class PredictorContainer {
 
-  private Map<String, Predictor> predictorMap = new HashMap<>();
+  private Map<String, Predictor> predictorMap = new HashMap<String, Predictor>();
 
   public Map<String, Predictor> getPredictorMap() {
     return predictorMap;

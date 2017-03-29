@@ -72,13 +72,15 @@ public class TestingMapper extends Mapper<Object, Text, Text, Text> {
        * currPredictorResult format :
        *      [ClassName|ClassVal|Result|InputClassValue]
        * */
-      List<String> allClassResult = new ArrayList<>();
+      List<String> allClassResult = new ArrayList<String>();
 
       for (Iterator<Entry<String, ClassPriorDetail>> p = sumClassPrior.getAttrDetailMap().entrySet()
           .iterator(); p.hasNext(); ) {
         ClassPriorDetail forSumClassPriorDetail = p.next().getValue();
 
         double currClassAllPredictorResult = 1.0;
+        int flag = 0;
+        outer:
         for (int j = 0; j < attrSplitConf.length; j++) {
           int attrIdx = Integer.parseInt(attrSplitConf[j].trim().split(",")[1]);
           String attrName = attrSplitConf[j].trim().split(",")[0].trim().toLowerCase();
@@ -94,7 +96,9 @@ public class TestingMapper extends Mapper<Object, Text, Text, Text> {
             PredictorDetail predictorDetail = pred.getAttrDetailMap().get(currInAttrValue);
             if (predictorDetail == null) {
               throw new IllegalArgumentException(
-                  "PRED_DETAIL IS NULL ON line 97 : TestingMapper.class");
+                  "PRED_DETAIL IS NULL ON line 97 : TestingMapper.class\n For Val="
+                      + currInAttrValue + "\n"
+                      + "From: " + pred.getAttrDetailMap().toString());
             }
             ClassPrior classPrior = predictorDetail.getClassPriorMap().get(className);
 //            ClassPrior classPrior = classContainer.getClassPriorMap().get(className);
@@ -110,7 +114,9 @@ public class TestingMapper extends Mapper<Object, Text, Text, Text> {
               logger.info("Zero frequency problem occured for: ,predictorName=" + pred.getName()
                   + ",predVal=" + predictorDetail.getValue() + ",classPrior=" + classPrior
                   .getName() + ". Will Skip Attribute [" + pred.getName() + "]");
-              continue;
+              flag = 1;
+              break outer;
+//              continue;
 //              throw new IllegalArgumentException(
 //                  "Class Name = " + classPrior.getName() + "\n" +
 //                      "PredName = " + pred.getName() + "\n" +
@@ -211,36 +217,43 @@ public class TestingMapper extends Mapper<Object, Text, Text, Text> {
           }
         }
 
-        /**
-         *  times with P(C=c) possibilities of current class prior
-         * currPredRes *= (classInfoDetail.getCount() * 1.0) / (accFinal * 1.0);
-         */
-        ClassPrior classPrior = classContainer.getClassPriorMap().get(className);
-        if (classPrior == null) {
-          throw new IllegalArgumentException(
-              "ClassPrior is null on line 221 className=" + className + "\n"
-                  + "from: " + classContainer.getClassPriorMap().toString());
+        if (flag == 0) {
+          /**
+           *  times with P(C=c) possibilities of current class prior
+           * currPredRes *= (classInfoDetail.getCount() * 1.0) / (accFinal * 1.0);
+           */
+          ClassPrior classPrior = classContainer.getClassPriorMap().get(className);
+          if (classPrior == null) {
+            throw new IllegalArgumentException(
+                "ClassPrior is null on line 221 className=" + className + "\n"
+                    + "from: " + classContainer.getClassPriorMap().toString());
+          }
+          ClassPriorDetail detail = classPrior.getAttrDetailMap()
+              .get(forSumClassPriorDetail.getValue());
+          if (detail == null) {
+            throw new IllegalArgumentException(
+                "ClassPriorDetail is null on line 229. classVal=" + forSumClassPriorDetail
+                    .getValue()
+                    + "\n"
+                    + "from: " + classPrior.getAttrDetailMap().toString());
+          }
+          double currClassCount = detail.getCount();
+          double allCurrClassCount = 0.0;
+          for (Entry<String, ClassPriorDetail> ent : classPrior
+              .getAttrDetailMap().entrySet()) {
+            allCurrClassCount += ent.getValue().getCount();
+          }
+          /**
+           * [ClassName|ClassVal|Result|InputClassValue]
+           * */
+          currClassAllPredictorResult *= (currClassCount / allCurrClassCount);
+          allClassResult.add(className + "|" + forSumClassPriorDetail.getValue() + "|"
+              + currClassAllPredictorResult + "|" + currInClassValue);
+        } else {
+          logger.info("Zero frequency problem occured.\n"
+              + "Ignore for Class=" + sumClassPrior.getName() + " -> Value="
+              + forSumClassPriorDetail.getValue());
         }
-        ClassPriorDetail detail = classPrior.getAttrDetailMap()
-            .get(forSumClassPriorDetail.getValue());
-        if (detail == null) {
-          throw new IllegalArgumentException(
-              "ClassPriorDetail is null on line 229. classVal=" + forSumClassPriorDetail.getValue()
-                  + "\n"
-                  + "from: " + classPrior.getAttrDetailMap().toString());
-        }
-        double currClassCount = detail.getCount();
-        double allCurrClassCount = 0.0;
-        for (Entry<String, ClassPriorDetail> ent : classPrior
-            .getAttrDetailMap().entrySet()) {
-          allCurrClassCount += ent.getValue().getCount();
-        }
-        /**
-         * [ClassName|ClassVal|Result|InputClassValue]
-         * */
-        currClassAllPredictorResult *= (currClassCount / allCurrClassCount);
-        allClassResult.add(className + "|" + forSumClassPriorDetail.getValue() + "|"
-            + currClassAllPredictorResult + "|" + currInClassValue);
       }
 
       /**
@@ -262,10 +275,11 @@ public class TestingMapper extends Mapper<Object, Text, Text, Text> {
           maxClass = s;
         }
       }
+//      context.write(new Text(maxClass), new Text(checker + ""));
       double resNorm = (checker / divisorNorm) * 100;
       String[] splitter = maxClass.split("\\|");
       DecimalFormat df = new DecimalFormat("#.00");
-      df.setRoundingMode(RoundingMode.HALF_UP);
+      df.setRoundingMode(RoundingMode.CEILING);
       String maxResult =
           splitter[0] + "|" + "predicted=" + splitter[1] + "|percentage=" + df.format(resNorm)
               + "%"
@@ -277,7 +291,11 @@ public class TestingMapper extends Mapper<Object, Text, Text, Text> {
       String[] splitter = s.split("\\|");
       String outputKey = splitter[0];
       String outputVal = splitter[1] + "|" + splitter[2] + "|" + splitter[3];
+      /**
+       * TODO: FVKING
+       * */
       context.write(new Text(outputKey), new Text(outputVal));
+
     }
   }
 

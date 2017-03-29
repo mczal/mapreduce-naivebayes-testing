@@ -89,7 +89,7 @@ public class ConfusionMatrix {
   //  }
 
   public String stringPrintedMatrix() {
-    HashMap<Integer, String> infoFromIdx = new HashMap<>();
+    HashMap<Integer, String> infoFromIdx = new HashMap<Integer, String>();
     int mostLongLength = 0;
     for (Iterator<Map.Entry<String, Integer>> itr = info.entrySet().iterator(); itr.hasNext(); ) {
       Map.Entry<String, Integer> entry = itr.next();
@@ -126,7 +126,7 @@ public class ConfusionMatrix {
       }
       res += "|";
       res.trim();
-      res += System.lineSeparator();
+      res += "\n";
     }
 
     return sNewLine(horizontalLength, res.trim()).trim();
