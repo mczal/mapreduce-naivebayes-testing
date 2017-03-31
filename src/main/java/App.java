@@ -4,7 +4,6 @@ import mapper.TestingMapper;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
@@ -59,6 +58,7 @@ public class App {
     }
 
     conf.set("outputModelPath", outputModelPath);
+    conf.set("laplacianSmoothingAdder", "1");
 
     FileSystem fs = FileSystem.get(conf);
     /* Check if output path (outputPath)exist or not */

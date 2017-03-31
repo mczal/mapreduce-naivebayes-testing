@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicInteger;
 import mapper.utils.classp.ClassContainer;
 import mapper.utils.classp.ClassPrior;
 import mapper.utils.classp.ClassPriorDetail;
@@ -89,6 +90,7 @@ public class TestingMapper extends Mapper<Object, Text, Text, Text> {
           String currInAttrValue = in[attrIdx].trim().toLowerCase();
 
           if (attrType.equals(TypeInfo.DISCRETE.name().toLowerCase())) {
+
             Predictor pred = predictorContainer.getPredictorMap().get(attrName);
             if (pred == null) {
               throw new IllegalArgumentException("PRED IS NULL ON line 93 : TestingMapper.class");
@@ -111,11 +113,19 @@ public class TestingMapper extends Mapper<Object, Text, Text, Text> {
             ClassPriorDetail classPriorDetail = classPrior.getAttrDetailMap()
                 .get(forSumClassPriorDetail.getValue());
             if (classPriorDetail == null) {
-              logger.info("Zero frequency problem occured for: ,predictorName=" + pred.getName()
-                  + ",predVal=" + predictorDetail.getValue() + ",classPrior=" + classPrior
-                  .getName() + ". Will Skip Attribute [" + pred.getName() + "]");
-              flag = 1;
-              break outer;
+              /**
+               * TODO: ZERO FREQ HANDLING
+               * */
+              String from = classPrior.getAttrDetailMap().toString();
+              throw new RuntimeException(
+                  "Zero frequency problem occured for: ,predictorName=" + pred.getName()
+                      + ",predVal=" + predictorDetail.getValue() + ",classPrior=" + classPrior
+                      .getName() + ",classPriorDetail=" + forSumClassPriorDetail.getValue()
+                      + ". Will Skip Attribute [" + pred.getName() + "]\n\n"
+                      + "From: classPrior.getAttrDetailMap() -> " + from);
+//              flag = 1;
+//              break outer;
+
 //              continue;
 //              throw new IllegalArgumentException(
 //                  "Class Name = " + classPrior.getName() + "\n" +
@@ -310,6 +320,7 @@ public class TestingMapper extends Mapper<Object, Text, Text, Text> {
     attrSplitConf = context.getConfiguration().get("attributes").split(";");
 
     String outputModelPath = conf.get("outputModelPath");
+    int laplacianSmoothingAdder = Integer.parseInt(conf.get("laplacianSmoothingAdder"));
 
     FileSystem fs = FileSystem.get(conf);
     Path path = new Path(HDFS_AUTHORITY + outputModelPath);
@@ -323,6 +334,7 @@ public class TestingMapper extends Mapper<Object, Text, Text, Text> {
         String[] currLineSplitter = currLine.split("\\|");
 
         String currType = currLineSplitter[currLineSplitter.length - 1].trim();
+        int bayesianCount = 1;
         /**
          * IF CLASS
          * */
@@ -420,5 +432,80 @@ public class TestingMapper extends Mapper<Object, Text, Text, Text> {
         }
       }
     }
+    this.laplacianSmoothing(laplacianSmoothingAdder);
   }
+
+  private void laplacianSmoothing(int laplacianSmoothingAdder) {
+    if (classContainer.getClassPriorMap().size() <= 0) {
+      throw new RuntimeException("Class container size is equal to zero.");
+    }
+    classContainer.getClassPriorMap().forEach((className, classPrior) -> {
+//      classContainer.getClassPriorMap().put(className, classPrior);
+      /**
+       * FOR EACH CLASS
+       * */
+      classPrior.getAttrDetailMap().forEach((classValue, classPriorDetail) -> {
+//        classPrior.getAttrDetailMap().put(classValue, classPriorDetail);
+        /**
+         * FOR EACH CLASS VALUE
+         * */
+        if (predictorContainer.getPredictorMap().size() <= 0) {
+          throw new RuntimeException("Predictor container size is equal to zero.");
+        }
+        predictorContainer.getPredictorMap().forEach((predictorName, predictor) -> {
+//          predictorContainer.getPredictorMap().put(predictorName, predictor);
+          AtomicInteger totalAdditionForCurrClassDetail = new AtomicInteger(0);
+          /**
+           * FOR EACH PREDICTOR
+           * */
+          predictor.getAttrDetailMap().forEach((predictorDetailName, predictorDetail) -> {
+//            predictor.getAttrDetailMap().put(predictorDetailName, predictorDetail);
+            /**
+             * FOR EACH PREDICTOR DETAIL
+             * DO ADDITION FOR AVAILABLE ATTR AND CREATE NEW IF NOT AVAILABLE
+             * */
+            /**
+             * CHECKER METHOD
+             * */
+            ClassPriorDetail classPriorDetailModify = predictorDetail.getClassPriorMap()
+                .get(className)
+                .getAttrDetailMap()
+                .get(classValue);
+            if (classPriorDetailModify == null) {
+              classPriorDetailModify = new ClassPriorDetail(classValue, laplacianSmoothingAdder);
+              predictorDetail.getClassPriorMap().get(className).getAttrDetailMap()
+                  .put(classValue, classPriorDetailModify);
+              ClassPriorDetail tmpClassPriorDetail = classPrior.getAttrDetailMap().get(classValue);
+              tmpClassPriorDetail
+                  .setCount(tmpClassPriorDetail.getCount() + laplacianSmoothingAdder);
+              /**
+               * ----------------- WORK-SEPARATOR (UNUSED)-----------------
+               * */
+
+            } else {
+              classPriorDetailModify
+                  .setCount(classPriorDetailModify.getCount() + laplacianSmoothingAdder);
+              /**
+               * ----------------- WORK-SEPARATOR (UNUSED) -----------------
+               * */
+
+            }
+            /**
+             * HANDLER FOR CLASS PRIOR
+             * */
+            for (int i = 0; i < laplacianSmoothingAdder; i++) {
+              totalAdditionForCurrClassDetail.incrementAndGet();
+            }
+          });
+          ClassPriorDetail classPriorDetailSecondHandler = predictor.getClassPriorMap()
+              .get(className)
+              .getAttrDetailMap().get(classValue);
+          classPriorDetailSecondHandler
+              .setCount(
+                  classPriorDetailSecondHandler.getCount() + totalAdditionForCurrClassDetail.get());
+        });
+      });
+    });
+  }
+
 }
