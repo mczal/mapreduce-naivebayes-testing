@@ -215,7 +215,16 @@ public class TestingMapper extends Mapper<Object, Text, Text, Text> {
             double sigma = detail.getSigma();
 
             double divisor = Math.sqrt(2.0 * Math.PI * sigma);
-            double powerDividend = Math.pow((Double.parseDouble(currInAttrValue) - mean), 2) * -1;
+
+            Double currNumericalInAttrValue;
+            if (currInAttrValue.contains("\\.")) {
+              currNumericalInAttrValue = Double.parseDouble(currInAttrValue);
+            } else {
+              currNumericalInAttrValue = Integer.parseInt(currInAttrValue) * 1.0;
+            }
+            double powerDividend = Math.pow((currNumericalInAttrValue - mean), 2) * -1;
+//            double powerDividend = Math.pow((Double.parseDouble(currInAttrValue) - mean), 2) * -1;
+
             double powerDivisor = 2.0 * Math.pow(sigma, 2);
             double resPower = powerDividend / powerDivisor;
             double currRes = (1 / divisor) * (Math.pow(Math.E, resPower));
