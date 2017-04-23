@@ -89,7 +89,7 @@ public class TestingMapper extends Mapper<Object, Text, Text, Text> {
 
           String currInAttrValue = in[attrIdx].trim().toLowerCase();
 
-          if (attrType.equals(TypeInfo.DISCRETE.name().toLowerCase())) {
+          if (attrType.equalsIgnoreCase(TypeInfo.DISCRETE.name())) {
 
             Predictor pred = predictorContainer.getPredictorMap().get(attrName);
             if (pred == null) {
@@ -166,12 +166,16 @@ public class TestingMapper extends Mapper<Object, Text, Text, Text> {
 //                .get(currInAttrValue)
                 divClassPriorDetail.getCount();
             double currRes = (countDividend * 1.0) / (divisor * 1.0);
-            String print1 =
-                "MCZAL \ncurrClassAllPredictorResult BEFORE : " + currClassAllPredictorResult;
+//            String print1 =
+//                "MCZAL \ncurrClassAllPredictorResult BEFORE : " + currClassAllPredictorResult;
+
+//
             currClassAllPredictorResult *= currRes;
-            String print2 = "\nMCZAL: \ndivisor: " + divisor + "\ncountDividend: " + countDividend;
-            String print3 = "\nMCZAL: \ncurrRes: " + currRes + " \ncurrClassAllPredictorResult: "
-                + currClassAllPredictorResult;
+//
+
+//            String print2 = "\nMCZAL: \ndivisor: " + divisor + "\ncountDividend: " + countDividend;
+//            String print3 = "\nMCZAL: \ncurrRes: " + currRes + " \ncurrClassAllPredictorResult: "
+//                + currClassAllPredictorResult;
 //            context.write(
 //                new Text(
 //                    "\n-----------------\nclassName => " + className + "\n | "
@@ -180,7 +184,8 @@ public class TestingMapper extends Mapper<Object, Text, Text, Text> {
 //                        + currClassAllPredictorResult + "\n | currInClassValue => "
 //                        + currInClassValue + "\n\n" + print1 + print2
 //                        + print3 + "\n-----------------\n"),
-//                one);
+//                new Text());
+
           } else if (attrType.equals(TypeInfo.NUMERICAL.name().toLowerCase())) {
             /**
              * use currInAttrValue
@@ -211,10 +216,16 @@ public class TestingMapper extends Mapper<Object, Text, Text, Text> {
             /**
              * Calculate Norm.Dist. =>
              * */
+            String debugSecNum = "!!!!!!!!!!!!\n"
+                + "For Class=" + forSumClassPriorDetail.getValue() + "\n";
+
             double mean = detail.getMean();
             double sigma = detail.getSigma();
+            debugSecNum += "mean=" + mean + "\n"
+                + "sigma=" + sigma + "\n";
 
             double divisor = Math.sqrt(2.0 * Math.PI * sigma);
+            debugSecNum += "divisor=" + divisor + "\n";
 
             Double currNumericalInAttrValue;
             if (currInAttrValue.contains("\\.")) {
@@ -223,12 +234,40 @@ public class TestingMapper extends Mapper<Object, Text, Text, Text> {
               currNumericalInAttrValue = Integer.parseInt(currInAttrValue) * 1.0;
             }
             double powerDividend = Math.pow((currNumericalInAttrValue - mean), 2) * -1;
+
+            debugSecNum += "currNumericalInAttrValue=" + currNumericalInAttrValue + "\n";
+            debugSecNum += "powerDividend=" + powerDividend + "\n";
 //            double powerDividend = Math.pow((Double.parseDouble(currInAttrValue) - mean), 2) * -1;
 
             double powerDivisor = 2.0 * Math.pow(sigma, 2);
+
+            debugSecNum += "powerDivisor=" + powerDivisor + "\n";
+
             double resPower = powerDividend / powerDivisor;
+
+            debugSecNum += "resPower=" + resPower + "\n";
+
             double currRes = (1 / divisor) * (Math.pow(Math.E, resPower));
+
+            debugSecNum += "currRes=" + currRes + "\n";
+            debugSecNum += "!!!!!!!!!!!!";
+
+//            context.write(new Text(debugSecNum), new Text());
+
+//            String print1 = "+++++++++++++\n"
+//                + "For: " + className + "=" + forSumClassPriorDetail.getValue() + "\n"
+//                + "currInAttrValue=" + currInAttrValue + "\n"
+//                + "currRes=" + currRes + "\n"
+//                + "ResBefore=" + currClassAllPredictorResult + "\n";
+
+            //
             currClassAllPredictorResult *= currRes;
+            //
+
+//            String print2 = "ResAfter=" + currClassAllPredictorResult + "\n"
+//                + "+++++++++++++";
+//            context.write(new Text(print1 + print2), new Text());
+
           } else {
             throw new IllegalArgumentException(
                 "System Error : INVALID TYPE HERE => " + attrType + " != " + TypeInfo.DISCRETE
@@ -269,7 +308,7 @@ public class TestingMapper extends Mapper<Object, Text, Text, Text> {
           allClassResult.add(className + "|" + forSumClassPriorDetail.getValue() + "|"
               + currClassAllPredictorResult + "|" + currInClassValue);
         } else {
-          logger.info("Zero frequency problem occured.\n"
+          throw new IllegalArgumentException("FLAG \nFLAG\nZero frequency problem occured.\n"
               + "Ignore for Class=" + sumClassPrior.getName() + " -> Value="
               + forSumClassPriorDetail.getValue());
         }
@@ -287,9 +326,15 @@ public class TestingMapper extends Mapper<Object, Text, Text, Text> {
        * [ClassName|ClassVal|Result|InputClassValue]
        * */
       for (String s : allClassResult) {
+//        context.write(new Text("\ns=" + s), new Text());
         double currentVal = Double.parseDouble(s.split("\\|")[2]);
         divisorNorm += currentVal;
+//        context
+//            .write(new Text("\n Is checker=" + checker + " < currVal=" + currentVal), new Text());
         if (checker < currentVal) {
+//          context
+//              .write(new Text("\nchecker=" + checker + " < currVal=" + currentVal + " ARE TRUE"),
+//                  new Text());
           checker = currentVal;
           maxClass = s;
         }
@@ -298,7 +343,7 @@ public class TestingMapper extends Mapper<Object, Text, Text, Text> {
       double resNorm = (checker / divisorNorm) * 100;
       String[] splitter = maxClass.split("\\|");
       DecimalFormat df = new DecimalFormat("#.00");
-      df.setRoundingMode(RoundingMode.CEILING);
+      df.setRoundingMode(RoundingMode.HALF_UP);
       String maxResult =
           splitter[0] + "|" + "predicted=" + splitter[1] + "|percentage=" + df.format(resNorm)
               + "%"
