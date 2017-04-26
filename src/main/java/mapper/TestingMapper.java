@@ -228,7 +228,7 @@ public class TestingMapper extends Mapper<Object, Text, Text, Text> {
             debugSecNum += "divisor=" + divisor + "\n";
 
             Double currNumericalInAttrValue;
-            if (currInAttrValue.contains("\\.")) {
+            if (currInAttrValue.contains(".")) {
               currNumericalInAttrValue = Double.parseDouble(currInAttrValue);
             } else {
               currNumericalInAttrValue = Integer.parseInt(currInAttrValue) * 1.0;

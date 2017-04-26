@@ -113,6 +113,18 @@ public class TestingReducer extends Reducer<Text, Text, Text, Text> {
       String recallOperation = currTP + " / " + currTP + " + " + currFN;
       double recallResult = currTP * 1.0 / (currTP + currFN) * 1.0;
       outVal += "-> " + recallOperation + " = " + recallResult + System.lineSeparator();
+
+      /**
+       * F Measure
+       * */
+      double alpha = (2.0 * precisionResult * recallResult) / (precisionResult + recallResult);
+      String fMeasureOperation =
+          "{1 / { " + String.format("%.2f", alpha) + " {1 / P}+(1- " + String
+              .format("%.2f", alpha) + " ) {1 / R} }}";
+      double fMeasureResult = 1 /
+          ((alpha * (1 / precisionResult)) + ((1 - alpha) * (1 / recallResult)));
+      outVal += "F-Measure:" + System.lineSeparator();
+      outVal += "-> " + fMeasureOperation + " = " + fMeasureResult + System.lineSeparator();
     }
     outVal += "****";
     /**
