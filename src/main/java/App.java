@@ -1,5 +1,9 @@
 import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Properties;
 import mapper.TestingMapper;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -15,19 +19,38 @@ import reducer.TestingReducer;
  */
 public class App {
 
-  private static final String HDFS_AUTHORITY = "hdfs://localhost:9000";
+  private static String HDFS_AUTHORITY;
+
+  private static void loadProperties(String fileLoc) throws Exception {
+    try {
+      BufferedReader br = new BufferedReader(new FileReader(fileLoc));
+      Properties props = new Properties();
+      props.load(br);
+      HDFS_AUTHORITY = props.getProperty("hdfs.authority");
+    } catch (FileNotFoundException fnfe) {
+      throw new FileNotFoundException(
+          "Error catched by custom Impl. Please read the following line below.\n"
+              + "-----------------------------\n"
+              + "-> Your .properties file not found.");
+    } catch (IOException e) {
+      throw new IOException(
+          "Error catched by custom Impl. Please read the following line below.\n"
+              + "-----------------------------\n"
+              + "-> IO Exception OCCURED.");
+    }
+  }
 
   /**
    * @param args : [0] model path
    */
   public static void main(String[] args) throws Exception {
 
-    if (args.length != 1) {
+    if (args.length != 2) {
       String argsExcp =
           "Error catched by custom Impl. Please read the following line below.\n"
               + "-----------------------------\n"
-              + "-> Arguments must only consist of 1 path.\n"
-              + "-> It located the model of input you want to execute in HDFS.\n"
+              + "-> Arguments must only consist of 2 path.\n"
+              + "-> It located the model of input you want to execute in HDFS .properties file for specify HDFS url.\n"
               + "-> Ex: \n"
               + "-> If args[0]=/user/root/bayes/weather -> \n"
               + "-> Then, that path must had : \n"
@@ -38,6 +61,14 @@ public class App {
               + "-----------------------------";
       throw new IllegalArgumentException(argsExcp);
     }
+
+    if (!args[1].contains(".properties")) {
+      throw new IllegalArgumentException(
+          "Error catched by custom Impl. Please read the following line below.\n"
+              + "-----------------------------\n"
+              + "-> Second arguments must specifying your path for .properties file.");
+    }
+    loadProperties(args[1]);
 
     Configuration conf = new Configuration();
 
@@ -59,6 +90,7 @@ public class App {
 
     conf.set("outputModelPath", outputModelPath);
     conf.set("laplacianSmoothingAdder", "1");
+    conf.set("hdfs.authority", HDFS_AUTHORITY);
 
     FileSystem fs = FileSystem.get(conf);
     /* Check if output path (outputPath)exist or not */

@@ -33,8 +33,6 @@ import org.slf4j.LoggerFactory;
  */
 public class TestingMapper extends Mapper<Object, Text, Text, Text> {
 
-  private static final String HDFS_AUTHORITY = "hdfs://localhost:9000";
-
   private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
   private final IntWritable one = new IntWritable(1);
@@ -103,7 +101,6 @@ public class TestingMapper extends Mapper<Object, Text, Text, Text> {
                       + "From: " + pred.getAttrDetailMap().toString());
             }
             ClassPrior classPrior = predictorDetail.getClassPriorMap().get(className);
-//            ClassPrior classPrior = classContainer.getClassPriorMap().get(className);
             if (classPrior == null) {
               throw new IllegalArgumentException(
                   "CLASS_PRIOR IS NULL ON line 104 : TestingMapper.class" + " => " + predictorDetail
@@ -123,18 +120,6 @@ public class TestingMapper extends Mapper<Object, Text, Text, Text> {
                       .getName() + ",classPriorDetail=" + forSumClassPriorDetail.getValue()
                       + ". Will Skip Attribute [" + pred.getName() + "]\n\n"
                       + "From: classPrior.getAttrDetailMap() -> " + from);
-//              flag = 1;
-//              break outer;
-
-//              continue;
-//              throw new IllegalArgumentException(
-//                  "Class Name = " + classPrior.getName() + "\n" +
-//                      "PredName = " + pred.getName() + "\n" +
-//                      "PredDetailName = " + predictorDetail.getValue() + "\n" +
-//                      "CLASS_PRIOR_DETAIL IS NULL ON line 89 : TestingMapper.class :: \nclassPrior.getAttrDetailMap()"
-//                      + " => " + classPrior.getAttrDetailMap()
-//                      + "\nforSumClassPriorDetail.getValue() => "
-//                      + forSumClassPriorDetail.getValue());
             }
             int countDividend = classPriorDetail.getCount();
             /**
@@ -161,30 +146,10 @@ public class TestingMapper extends Mapper<Object, Text, Text, Text> {
              * [END]
              * DEBUG SECTION
              * */
-            int divisor =
-//                pred.getClassPriorMap().get(className).getAttrDetailMap()
-//                .get(currInAttrValue)
-                divClassPriorDetail.getCount();
+            int divisor = divClassPriorDetail.getCount();
             double currRes = (countDividend * 1.0) / (divisor * 1.0);
-//            String print1 =
-//                "MCZAL \ncurrClassAllPredictorResult BEFORE : " + currClassAllPredictorResult;
 
-//
             currClassAllPredictorResult *= currRes;
-//
-
-//            String print2 = "\nMCZAL: \ndivisor: " + divisor + "\ncountDividend: " + countDividend;
-//            String print3 = "\nMCZAL: \ncurrRes: " + currRes + " \ncurrClassAllPredictorResult: "
-//                + currClassAllPredictorResult;
-//            context.write(
-//                new Text(
-//                    "\n-----------------\nclassName => " + className + "\n | "
-//                        + " forSumClassPriorDetail.getValue() => "
-//                        + forSumClassPriorDetail.getValue() + "\n | currClassAllPredictorResult =>"
-//                        + currClassAllPredictorResult + "\n | currInClassValue => "
-//                        + currInClassValue + "\n\n" + print1 + print2
-//                        + print3 + "\n-----------------\n"),
-//                new Text());
 
           } else if (attrType.equals(TypeInfo.NUMERICAL.name().toLowerCase())) {
             /**
@@ -221,11 +186,8 @@ public class TestingMapper extends Mapper<Object, Text, Text, Text> {
 
             double mean = detail.getMean();
             double sigma = detail.getSigma();
-            debugSecNum += "mean=" + mean + "\n"
-                + "sigma=" + sigma + "\n";
 
             double divisor = Math.sqrt(2.0 * Math.PI * sigma);
-            debugSecNum += "divisor=" + divisor + "\n";
 
             Double currNumericalInAttrValue;
             if (currInAttrValue.contains(".")) {
@@ -235,38 +197,13 @@ public class TestingMapper extends Mapper<Object, Text, Text, Text> {
             }
             double powerDividend = Math.pow((currNumericalInAttrValue - mean), 2) * -1;
 
-            debugSecNum += "currNumericalInAttrValue=" + currNumericalInAttrValue + "\n";
-            debugSecNum += "powerDividend=" + powerDividend + "\n";
-//            double powerDividend = Math.pow((Double.parseDouble(currInAttrValue) - mean), 2) * -1;
-
             double powerDivisor = 2.0 * Math.pow(sigma, 2);
-
-            debugSecNum += "powerDivisor=" + powerDivisor + "\n";
 
             double resPower = powerDividend / powerDivisor;
 
-            debugSecNum += "resPower=" + resPower + "\n";
-
             double currRes = (1 / divisor) * (Math.pow(Math.E, resPower));
 
-            debugSecNum += "currRes=" + currRes + "\n";
-            debugSecNum += "!!!!!!!!!!!!";
-
-//            context.write(new Text(debugSecNum), new Text());
-
-//            String print1 = "+++++++++++++\n"
-//                + "For: " + className + "=" + forSumClassPriorDetail.getValue() + "\n"
-//                + "currInAttrValue=" + currInAttrValue + "\n"
-//                + "currRes=" + currRes + "\n"
-//                + "ResBefore=" + currClassAllPredictorResult + "\n";
-
-            //
             currClassAllPredictorResult *= currRes;
-            //
-
-//            String print2 = "ResAfter=" + currClassAllPredictorResult + "\n"
-//                + "+++++++++++++";
-//            context.write(new Text(print1 + print2), new Text());
 
           } else {
             throw new IllegalArgumentException(
@@ -326,20 +263,13 @@ public class TestingMapper extends Mapper<Object, Text, Text, Text> {
        * [ClassName|ClassVal|Result|InputClassValue]
        * */
       for (String s : allClassResult) {
-//        context.write(new Text("\ns=" + s), new Text());
         double currentVal = Double.parseDouble(s.split("\\|")[2]);
         divisorNorm += currentVal;
-//        context
-//            .write(new Text("\n Is checker=" + checker + " < currVal=" + currentVal), new Text());
         if (checker < currentVal) {
-//          context
-//              .write(new Text("\nchecker=" + checker + " < currVal=" + currentVal + " ARE TRUE"),
-//                  new Text());
           checker = currentVal;
           maxClass = s;
         }
       }
-//      context.write(new Text(maxClass), new Text(checker + ""));
       double resNorm = (checker / divisorNorm) * 100;
       String[] splitter = maxClass.split("\\|");
       DecimalFormat df = new DecimalFormat("#.00");
@@ -366,6 +296,7 @@ public class TestingMapper extends Mapper<Object, Text, Text, Text> {
   @Override
   protected void setup(Context context) throws IOException, InterruptedException {
     Configuration conf = context.getConfiguration();
+    final String HDFS_AUTHORITY = conf.get("hdfs.authority");
 
     /**
      * Getting conf
@@ -494,12 +425,10 @@ public class TestingMapper extends Mapper<Object, Text, Text, Text> {
       throw new RuntimeException("Class container size is equal to zero.");
     }
     classContainer.getClassPriorMap().forEach((className, classPrior) -> {
-//      classContainer.getClassPriorMap().put(className, classPrior);
       /**
        * FOR EACH CLASS
        * */
       classPrior.getAttrDetailMap().forEach((classValue, classPriorDetail) -> {
-//        classPrior.getAttrDetailMap().put(classValue, classPriorDetail);
         /**
          * FOR EACH CLASS VALUE
          * */
@@ -507,13 +436,13 @@ public class TestingMapper extends Mapper<Object, Text, Text, Text> {
           throw new RuntimeException("Predictor container size is equal to zero.");
         }
         predictorContainer.getPredictorMap().forEach((predictorName, predictor) -> {
-//          predictorContainer.getPredictorMap().put(predictorName, predictor);
+
           AtomicInteger totalAdditionForCurrClassDetail = new AtomicInteger(0);
           /**
            * FOR EACH PREDICTOR
            * */
           predictor.getAttrDetailMap().forEach((predictorDetailName, predictorDetail) -> {
-//            predictor.getAttrDetailMap().put(predictorDetailName, predictorDetail);
+
             /**
              * FOR EACH PREDICTOR DETAIL
              * DO ADDITION FOR AVAILABLE ATTR AND CREATE NEW IF NOT AVAILABLE

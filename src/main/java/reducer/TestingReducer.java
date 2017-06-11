@@ -19,7 +19,6 @@ import reducer.utils.ConfusionMatrix;
  */
 public class TestingReducer extends Reducer<Text, Text, Text, Text> {
 
-  private static final String HDFS_AUTHORITY = "hdfs://localhost:9000";
   private ClassContainerRed classContainerRed = new ClassContainerRed();
   private String[] classSplitConf;
   private String[] attrSplitConf;
@@ -27,9 +26,7 @@ public class TestingReducer extends Reducer<Text, Text, Text, Text> {
   @Override
   protected void reduce(Text key, Iterable<Text> values, Context context)
       throws IOException, InterruptedException {
-//    for (Text value : values) {
-//      context.write(key, value);
-//    }
+
     ClassPriorRed classPriorRed = classContainerRed.getClassPriorRedHashMap()
         .get(key.toString().trim());
     if (classPriorRed == null) {
@@ -145,6 +142,7 @@ public class TestingReducer extends Reducer<Text, Text, Text, Text> {
   @Override
   protected void setup(Context context) throws IOException, InterruptedException {
     Configuration conf = context.getConfiguration();
+    final String HDFS_AUTHORITY = conf.get("hdfs.authority");
 
     String outputModelPath = conf.get("outputModelPath");
 
